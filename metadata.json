@@ -1,0 +1,6 @@
+{
+  "name": "Smooth Ride Rentals",
+  "description": "Affordable hourly scooter rentals for students in Selaqui & Dehradun, Uttarakhand. Book a ride whenever you need one at ₹60/hour.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
