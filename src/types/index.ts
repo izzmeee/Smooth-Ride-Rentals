@@ -11,6 +11,8 @@ export interface User {
   dlVerificationStatus: 'not_submitted' | 'pending' | 'verified' | 'rejected';
   idVerificationStatus: 'not_submitted' | 'pending' | 'verified' | 'rejected';
   verificationNotes?: string;
+  photoUrl?: string;
+  authProvider?: 'google' | 'local';
   createdAt: string;
 }
 

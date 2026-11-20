@@ -117,6 +117,48 @@ app.post('/api/auth/register', (req: Request, res: Response) => {
   res.status(201).json({ user: newUser, message: 'Account created successfully' });
 });
 
+app.post('/api/auth/google', (req: Request, res: Response) => {
+  const { uid, name, email, photoUrl } = req.body;
+  if (!uid || !email) {
+    return res.status(400).json({ error: 'Google account UID and email are required.' });
+  }
+
+  const db = getDatabase();
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const existing = db.users.find(u => u.email.toLowerCase() === normalizedEmail);
+
+  if (existing) {
+    existing.name = name ? String(name).trim().slice(0, 120) : existing.name;
+    existing.photoUrl = photoUrl ? String(photoUrl).trim().slice(0, 1000) : existing.photoUrl;
+    existing.authProvider = 'google';
+    saveDatabase(db);
+    return res.json({ user: existing, message: 'Signed in with Google successfully' });
+  }
+
+  const adminEmails = ['isha.0251mba104@dgu.ac.in', 'isha9896761229@gmail.com'];
+  const isFounderAdmin = adminEmails.includes(normalizedEmail);
+
+  const newUser: User = {
+    id: `usr_g_${String(uid).slice(0, 24)}`,
+    name: name ? String(name).trim().slice(0, 120) : normalizedEmail.split('@')[0],
+    email: String(email).trim().slice(0, 254),
+    phone: '',
+    role: isFounderAdmin ? 'admin' : 'customer',
+    collegeOrHostel: 'Selaqui / Dehradun Campus',
+    dlNumber: '',
+    dlVerificationStatus: isFounderAdmin ? 'verified' : 'not_submitted',
+    idVerificationStatus: isFounderAdmin ? 'verified' : 'pending',
+    photoUrl: photoUrl ? String(photoUrl).trim().slice(0, 1000) : undefined,
+    authProvider: 'google',
+    createdAt: new Date().toISOString()
+  };
+
+  db.users.push(newUser);
+  saveDatabase(db);
+
+  res.status(201).json({ user: newUser, message: 'Google account linked successfully' });
+});
+
 // ----------------- SCOOTERS ROUTES -----------------
 app.get('/api/scooters', (req: Request, res: Response) => {
   const db = getDatabase();

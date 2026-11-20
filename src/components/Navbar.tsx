@@ -11,7 +11,6 @@ interface NavbarProps {
   onLogout: () => void;
   onOpenBooking: () => void;
   onOpenTestingChecklist: () => void;
-  onOpenPdfModal: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -21,7 +20,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAuth,
   onLogout,
   onOpenBooking,
-  onOpenPdfModal,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-xl border-b border-neutral-200/80 print:hidden">
@@ -110,13 +108,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
           )}
-
-          <button
-            onClick={onOpenPdfModal}
-            className="whitespace-nowrap shrink-0 py-1.5 hover:text-[#0B0C10] transition-colors"
-          >
-            Report PDF
-          </button>
         </nav>
 
         {/* Zone 3: User Access + Tactile Signature CTA */}
@@ -127,9 +118,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() =>
                   setCurrentTab(currentUser.role === 'admin' ? 'admin_dashboard' : 'customer_dashboard')
                 }
-                className="text-xs font-semibold text-neutral-700 hover:text-[#0B0C10] px-2.5 py-2 rounded-lg hover:bg-neutral-100 transition-colors whitespace-nowrap shrink-0"
+                className="inline-flex items-center gap-2 text-xs font-semibold text-neutral-700 hover:text-[#0B0C10] px-2.5 py-1.5 rounded-lg hover:bg-neutral-100 transition-colors whitespace-nowrap shrink-0"
               >
-                {currentUser.name.split(' ')[0]}
+                {currentUser.photoUrl && (
+                  <img
+                    src={currentUser.photoUrl}
+                    alt={currentUser.name}
+                    referrerPolicy="no-referrer"
+                    className="w-6 h-6 rounded-full object-cover border border-neutral-200"
+                  />
+                )}
+                <span>{currentUser.name.split(' ')[0]}</span>
               </button>
               <button
                 onClick={onLogout}

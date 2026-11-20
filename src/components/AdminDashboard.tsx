@@ -9,19 +9,17 @@ import {
   BarChart3, Bike, Calendar, ShieldCheck, CreditCard, 
   Megaphone, Settings, Plus, CheckCircle2, XCircle, 
   Clock, AlertTriangle, RefreshCw, Eye, Edit, Trash2, 
-  Key, ArrowRight, UserCheck, Phone, Check, MapPin, Gauge, FileDown
+  Key, ArrowRight, UserCheck, Phone, Check, MapPin, Gauge
 } from 'lucide-react';
 
 interface AdminDashboardProps {
   currentUser: User;
   onRefreshData?: () => void;
-  onOpenPdfModal?: () => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   currentUser,
-  onRefreshData,
-  onOpenPdfModal
+  onRefreshData
 }) => {
   // Navigation sub-tabs
   type AdminTab = 'overview' | 'fleet' | 'bookings' | 'verifications' | 'payments' | 'marketing' | 'settings';
@@ -272,16 +270,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
 
         <div className="relative z-10 flex items-center gap-2.5 shrink-0 flex-wrap">
-          {onOpenPdfModal && (
-            <button
-              onClick={onOpenPdfModal}
-              className="flex items-center gap-2 px-4 py-2.5 text-xs font-extrabold text-[#0B0C10] bg-[#FFCA20] hover:bg-[#f4be10] rounded-xl transition-all shadow-sm active:scale-[0.98]"
-            >
-              <FileDown className="w-4 h-4 text-[#0B0C10]" />
-              <span>Download Report PDF</span>
-            </button>
-          )}
-
           <button
             onClick={loadAdminData}
             className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold text-neutral-300 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/15"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Scooter, User, Booking, AppSettings, MarketingCampaign } from './types/index.ts';
+import type { Scooter, User, Booking } from './types/index.ts';
 import { api } from './services/api.ts';
 import { Navbar } from './components/Navbar.tsx';
 import { BottomNav } from './components/BottomNav.tsx';
@@ -13,19 +13,15 @@ import { AuthModal } from './components/AuthModal.tsx';
 import { FeedbackModal } from './components/FeedbackModal.tsx';
 import { EnquiryModal } from './components/EnquiryModal.tsx';
 import { TestingChecklistModal } from './components/TestingChecklistModal.tsx';
-import { AssignmentPdfModal } from './components/AssignmentPdfModal.tsx';
 import { Logo } from './components/Logo.tsx';
-import { Phone, Mail, MapPin, MessageSquare, FileDown } from 'lucide-react';
+import { auth, onAuthStateChanged, signOutFirebase } from './firebase.ts';
+import { Phone, Mail, MapPin, MessageSquare } from 'lucide-react';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<string>('home');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const [scooters, setScooters] = useState<Scooter[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [campaigns, setCampaigns] = useState<MarketingCampaign[]>([]);
-  const [analytics, setAnalytics] = useState<any>(null);
 
   const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
   const [bookingScooter, setBookingScooter] = useState<Scooter | null>(null);
@@ -37,25 +33,14 @@ export default function App() {
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
   const [isEnquiryOpen, setIsEnquiryOpen] = useState<boolean>(false);
   const [isChecklistOpen, setIsChecklistOpen] = useState<boolean>(false);
-  const [isPdfModalOpen, setIsPdfModalOpen] = useState<boolean>(false);
 
   const [isFeedbackOpen, setIsFeedbackOpen] = useState<boolean>(false);
   const [feedbackBooking, setFeedbackBooking] = useState<Booking | null>(null);
 
   const loadAppData = async () => {
     try {
-      const [scootersRes, bookingsRes, settRes, campRes, analyticsRes] = await Promise.all([
-        api.getScooters({ role: currentUser?.role }),
-        api.getBookings(),
-        api.getSettings(),
-        api.getCampaigns(),
-        api.getAnalytics()
-      ]);
+      const scootersRes = await api.getScooters({ role: currentUser?.role });
       setScooters(scootersRes.scooters);
-      setBookings(bookingsRes.bookings);
-      setSettings(settRes.settings);
-      setCampaigns(campRes.campaigns);
-      setAnalytics(analyticsRes);
     } catch (err) {
       console.error('Failed to load application data', err);
     }
@@ -63,9 +48,22 @@ export default function App() {
 
   useEffect(() => {
     loadAppData();
-    api.login('rahul.s@student.dgu.ac.in').then(res => {
-      setCurrentUser(res.user);
-    }).catch(() => {});
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser && firebaseUser.email) {
+        try {
+          const res = await api.googleAuth({
+            uid: firebaseUser.uid,
+            name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+            email: firebaseUser.email,
+            photoUrl: firebaseUser.photoURL || undefined
+          });
+          setCurrentUser(res.user);
+        } catch {
+          // Keep current state if sync fails
+        }
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -88,7 +86,8 @@ export default function App() {
     setIsFeedbackOpen(true);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOutFirebase();
     setCurrentUser(null);
     setCurrentTab('home');
   };
@@ -104,7 +103,6 @@ export default function App() {
         onLogout={handleLogout}
         onOpenBooking={() => handleOpenBooking()}
         onOpenTestingChecklist={() => setIsChecklistOpen(true)}
-        onOpenPdfModal={() => setIsPdfModalOpen(true)}
       />
 
       <main className="flex-1">
@@ -115,7 +113,6 @@ export default function App() {
             onViewScooterDetails={handleOpenDetails}
             onExploreFleet={() => setCurrentTab('fleet')}
             onOpenEnquiry={() => setIsEnquiryOpen(true)}
-            onOpenPdfModal={() => setIsPdfModalOpen(true)}
           />
         )}
 
@@ -149,7 +146,6 @@ export default function App() {
               createdAt: new Date().toISOString()
             }}
             onRefreshData={loadAppData}
-            onOpenPdfModal={() => setIsPdfModalOpen(true)}
           />
         )}
       </main>
@@ -217,14 +213,6 @@ export default function App() {
 
               <div className="pt-2 flex flex-wrap gap-2">
                 <button
-                  onClick={() => setIsPdfModalOpen(true)}
-                  className="px-3.5 py-2 bg-[#FFCA20] hover:bg-[#f2bc12] text-[#111111] rounded-xl text-xs font-extrabold transition-colors inline-flex items-center gap-1.5"
-                >
-                  <FileDown className="w-3.5 h-3.5" />
-                  <span>Report PDF</span>
-                </button>
-
-                <button
                   onClick={() => setIsEnquiryOpen(true)}
                   className="px-3.5 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5"
                 >
@@ -241,10 +229,6 @@ export default function App() {
               © 2026 Smooth Ride Rentals · DBS Global University · isha.0251mba104@dgu.ac.in
             </div>
             <div className="flex items-center gap-4">
-              <button onClick={() => setIsPdfModalOpen(true)} className="text-[#FFCA20] hover:underline font-bold">
-                Report PDF
-              </button>
-              <span aria-hidden="true">·</span>
               <button onClick={() => setIsChecklistOpen(true)} className="hover:text-white transition-colors">
                 QA Checklist
               </button>
@@ -274,16 +258,6 @@ export default function App() {
         currentUser={currentUser}
         onOpenBooking={() => handleOpenBooking()}
         onOpenAuth={() => setIsAuthOpen(true)}
-      />
-
-      <AssignmentPdfModal
-        isOpen={isPdfModalOpen}
-        onClose={() => setIsPdfModalOpen(false)}
-        scooters={scooters}
-        bookings={bookings}
-        settings={settings}
-        campaigns={campaigns}
-        analytics={analytics}
       />
 
       <BookingModal

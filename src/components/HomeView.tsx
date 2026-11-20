@@ -4,7 +4,7 @@ import { ScooterCard } from './ScooterCard.tsx';
 import { HERO_RIDER_IMAGE, getScooterImage } from '../utils/scooterImages.ts';
 import {
   ArrowRight, ShieldCheck, Phone, MessageSquare, ChevronDown,
-  FileDown, Calendar, Clock, MapPin, Bike
+  Calendar, Clock, MapPin, Bike
 } from 'lucide-react';
 
 export interface QuickBookingSelection {
@@ -21,7 +21,6 @@ interface HomeViewProps {
   onViewScooterDetails: (scooter: Scooter) => void;
   onExploreFleet: () => void;
   onOpenEnquiry: () => void;
-  onOpenPdfModal: () => void;
 }
 
 const HUBS = [
@@ -35,8 +34,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onOpenBooking,
   onViewScooterDetails,
   onExploreFleet,
-  onOpenEnquiry,
-  onOpenPdfModal
+  onOpenEnquiry
 }) => {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [fleetBrandFilter, setFleetBrandFilter] = useState<string>('All');
@@ -328,14 +326,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
                 <div className="flex flex-wrap items-center justify-between gap-2 text-[11.5px] text-neutral-500 pt-0.5">
                   <span>ISI Helmet Included · Valid DL Required</span>
-                  <button
-                    type="button"
-                    onClick={onOpenPdfModal}
-                    className="font-semibold text-[#0B0C10] hover:underline inline-flex items-center gap-1 whitespace-nowrap"
-                  >
-                    <FileDown className="w-3.5 h-3.5" />
-                    <span>Report PDF</span>
-                  </button>
+                  <span className="font-semibold text-[#0B0C10]">Pay at Pickup</span>
                 </div>
               </form>
             </div>

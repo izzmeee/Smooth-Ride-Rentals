@@ -39,6 +39,19 @@ export const api = {
     return res.json();
   },
 
+  async googleAuth(data: { uid: string; name: string; email: string; photoUrl?: string }): Promise<{ user: User; message: string }> {
+    const res = await fetch(`${API_BASE}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Google sign-in sync failed');
+    }
+    return res.json();
+  },
+
   // Scooters
   async getScooters(params?: { date?: string; time?: string; hours?: number; role?: string }): Promise<{ scooters: Scooter[] }> {
     const query = new URLSearchParams();

@@ -1,0 +1,105 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Hardened Global Primitives ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'isha9896761229@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // --- Entity Validation Blueprint: UserProfile ---
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'name', 'email', 'role', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'name', 'email', 'photoUrl', 'role', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+        && (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 1000))
+        && (data.role == 'customer' || data.role == 'admin')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // --- Users Collection (Strict PII Isolation & Anti-Privilege-Escalation) ---
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == request.auth.uid
+        && incoming().email == request.auth.token.email
+        && incoming().role == 'customer'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && (
+          // Action: Owner profile refresh (Google display name / photo sync)
+          (
+            isOwner(userId)
+            && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'photoUrl', 'updatedAt'])
+            && incoming().uid == existing().uid
+            && incoming().email == existing().email
+            && incoming().role == existing().role
+            && incoming().createdAt == existing().createdAt
+            && incoming().updatedAt == request.time
+          ) || (
+            // Action: Admin account management
+            isAdmin()
+            && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'photoUrl', 'role', 'updatedAt'])
+            && incoming().uid == existing().uid
+            && incoming().email == existing().email
+            && incoming().createdAt == existing().createdAt
+            && incoming().updatedAt == request.time
+          )
+        );
+
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // --- Admins Lookup Collection (Read-Only for Self/Admin, Zero Client Writes) ---
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && (request.auth.uid == adminId || isAdmin());
+      allow list: if isAdmin();
+      allow write: if false;
+    }
+  }
+}
